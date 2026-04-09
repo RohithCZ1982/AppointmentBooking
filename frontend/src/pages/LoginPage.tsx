@@ -25,8 +25,16 @@ export default function LoginPage() {
       const meRes = await authApi.me()
       setAuth(token, meRes.data)
       navigate('/dashboard')
-    } catch {
-      setError('Invalid mobile number or PIN. Please try again.')
+    } catch (err: any) {
+      const status = err?.response?.status
+      const detail = err?.response?.data?.detail
+      if (status === 401 || status === 400) {
+        setError('Invalid mobile number or PIN. Please try again.')
+      } else if (!err?.response) {
+        setError('Cannot reach server. It may be starting up — please wait 30 seconds and try again.')
+      } else {
+        setError(`Error ${status ?? ''}: ${detail ?? err?.message ?? 'Unknown error'}`)
+      }
     } finally {
       setLoading(false)
     }
