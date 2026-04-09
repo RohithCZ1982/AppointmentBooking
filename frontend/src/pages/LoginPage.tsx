@@ -20,21 +20,30 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
+
+    // Show waking screen if server doesn't respond within 4 seconds
+    const wakingTimer = setTimeout(() => setServerWaking(true), 4000)
+
     try {
       const res = await authApi.login(mobile, pin)
+      clearTimeout(wakingTimer)
+      setServerWaking(false)
       const token = res.data.access_token
       useAuthStore.getState().setAuth(token, null as any)
       const meRes = await authApi.me()
       setAuth(token, meRes.data)
       navigate('/dashboard')
     } catch (err: any) {
+      clearTimeout(wakingTimer)
       const status = err?.response?.status
       const detail = err?.response?.data?.detail
       if (status === 401 || status === 400) {
+        setServerWaking(false)
         setError('Invalid mobile number or PIN. Please try again.')
       } else if (!err?.response) {
         setServerWaking(true)
       } else {
+        setServerWaking(false)
         setError(`Error ${status ?? ''}: ${detail ?? err?.message ?? 'Unknown error'}`)
       }
     } finally {

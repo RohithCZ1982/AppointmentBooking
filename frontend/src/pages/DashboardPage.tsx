@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { dashboardApi, appointmentsApi } from '@/api'
 import type { DashboardStats } from '@/types'
 import { Calendar, CheckCircle, Users, Clock, Send, CheckSquare, Square } from 'lucide-react'
@@ -14,17 +15,21 @@ const STATUS_COLORS: Record<string, string> = {
   no_show:     'bg-gray-100 text-gray-500',
 }
 
-function StatCard({ label, value, icon: Icon, gradient }: {
-  label: string; value: number; icon: React.ElementType; gradient: string
+function StatCard({ label, value, icon: Icon, gradient, onClick }: {
+  label: string; value: number; icon: React.ElementType; gradient: string; onClick?: () => void
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
+    <div
+      onClick={onClick}
+      className={`bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4 shadow-sm transition-all ${onClick ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5 active:scale-95' : ''}`}
+    >
       <div className={`p-3 rounded-xl ${gradient} shadow-sm`}>
         <Icon size={20} className="text-white" />
       </div>
       <div>
         <p className="text-2xl font-bold text-gray-900">{value}</p>
         <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+        {onClick && <p className="text-[10px] text-primary-500 mt-1">Tap to view →</p>}
       </div>
     </div>
   )
@@ -32,6 +37,8 @@ function StatCard({ label, value, icon: Icon, gradient }: {
 
 export default function DashboardPage() {
   const today = new Date()
+  const navigate = useNavigate()
+  const todayStr = format(today, 'yyyy-MM-dd')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [sendResults, setSendResults] = useState<Record<string, boolean | null>>({})
 
@@ -107,10 +114,10 @@ export default function DashboardPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <StatCard label="Today's Appointments" value={data?.today_appointments ?? 0} icon={Calendar}    gradient="bg-gradient-to-br from-primary-400 to-primary-600" />
-        <StatCard label="Completed Today"       value={data?.today_completed   ?? 0} icon={CheckCircle} gradient="bg-gradient-to-br from-green-400 to-green-600" />
-        <StatCard label="Total Patients"        value={data?.total_patients    ?? 0} icon={Users}       gradient="bg-gradient-to-br from-violet-400 to-violet-600" />
-        <StatCard label="Upcoming (7 days)"     value={data?.upcoming_7_days   ?? 0} icon={Clock}       gradient="bg-gradient-to-br from-amber-400 to-amber-600" />
+        <StatCard label="Today's Appointments" value={data?.today_appointments ?? 0} icon={Calendar}    gradient="bg-gradient-to-br from-primary-400 to-primary-600" onClick={() => navigate(`/appointments?date=${todayStr}`)} />
+        <StatCard label="Completed Today"       value={data?.today_completed   ?? 0} icon={CheckCircle} gradient="bg-gradient-to-br from-green-400 to-green-600"    onClick={() => navigate(`/appointments?date=${todayStr}&status=completed`)} />
+        <StatCard label="Total Patients"        value={data?.total_patients    ?? 0} icon={Users}       gradient="bg-gradient-to-br from-violet-400 to-violet-600"   onClick={() => navigate('/patients')} />
+        <StatCard label="Upcoming (7 days)"     value={data?.upcoming_7_days   ?? 0} icon={Clock}       gradient="bg-gradient-to-br from-amber-400 to-amber-600"     onClick={() => navigate('/appointments')} />
       </div>
 
       {/* Today's schedule */}

@@ -4,7 +4,7 @@ import { format } from 'date-fns'
 import { appointmentsApi, patientsApi, usersApi, treatmentTypesApi } from '@/api'
 import type { Appointment } from '@/types'
 import { Plus, X, CheckCircle, AlertCircle, Loader2, ExternalLink, Calendar } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 const STATUS_COLORS: Record<string, string> = {
   scheduled:   'bg-blue-100 text-blue-700',
@@ -43,7 +43,9 @@ type PatientStatus = 'idle' | 'searching' | 'found' | 'new'
 
 export default function AppointmentsPage() {
   const qc = useQueryClient()
-  const [dateFilter, setDateFilter] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [searchParams] = useSearchParams()
+  const [dateFilter, setDateFilter] = useState(searchParams.get('date') ?? format(new Date(), 'yyyy-MM-dd'))
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') ?? '')
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [patientStatus, setPatientStatus] = useState<PatientStatus>('idle')
@@ -52,8 +54,8 @@ export default function AppointmentsPage() {
 
   // ── Appointment list ──
   const { data, isLoading } = useQuery({
-    queryKey: ['appointments', dateFilter],
-    queryFn: () => appointmentsApi.list({ date: dateFilter, per_page: 50 }).then((r) => r.data),
+    queryKey: ['appointments', dateFilter, statusFilter],
+    queryFn: () => appointmentsApi.list({ date: dateFilter, status: statusFilter || undefined, per_page: 100 }).then((r) => r.data),
   })
 
   // ── Modal dropdowns ──
@@ -68,7 +70,7 @@ export default function AppointmentsPage() {
     enabled: showModal,
   })
 
-  const doctors = (doctorsData ?? []).filter((u: any) => u.role === 'doctor' || u.role === 'admin')
+  const doctors = (doctorsData ?? []).filter((u: any) => u.role === 'doctor')
 
   // ── Status mutation ──
   const statusMutation = useMutation({
@@ -189,13 +191,28 @@ export default function AppointmentsPage() {
         </div>
       </div>
 
-      {/* Date filter */}
-      <input
-        type="date"
-        value={dateFilter}
-        onChange={(e) => setDateFilter(e.target.value)}
-        className="border border-gray-200 rounded-xl px-3 py-1.5 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-      />
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2">
+        <input
+          type="date"
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value)}
+          className="border border-gray-200 rounded-xl px-3 py-1.5 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="border border-gray-200 rounded-xl px-3 py-1.5 text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+        >
+          <option value="">All Statuses</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="in_progress">In Progress</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="no_show">No Show</option>
+        </select>
+      </div>
 
       {/* Table */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -393,7 +410,7 @@ export default function AppointmentsPage() {
                   </div>
 
                   {/* Date + Time */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Date *</label>
                       <input

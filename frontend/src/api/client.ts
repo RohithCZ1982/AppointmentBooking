@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/authStore'
 const client = axios.create({
   baseURL: '/api/v1',
   headers: { 'Content-Type': 'application/json' },
+  timeout: 60000, // 60s — allows Render free tier to wake up (~30s cold start)
 })
 
 client.interceptors.request.use((config) => {

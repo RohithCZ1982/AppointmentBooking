@@ -52,7 +52,7 @@ export default function Layout() {
         href="https://wa.me/918792507355"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-[#25D366] rounded-full flex items-center justify-center shadow-lg hover:bg-[#1ebe5d] hover:scale-110 transition-all duration-200"
+        className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40 w-13 h-13 sm:w-14 sm:h-14 bg-[#25D366] rounded-full flex items-center justify-center shadow-lg hover:bg-[#1ebe5d] hover:scale-110 transition-all duration-200"
         title="WhatsApp"
       >
         <svg viewBox="0 0 32 32" className="w-8 h-8 fill-white">
