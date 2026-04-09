@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { patientsApi, recordsApi, imagesApi, plansApi, dentalChartApi } from '@/api'
+import { patientsApi, recordsApi, imagesApi, plansApi } from '@/api'
 import { User, FileText, Image, ClipboardList, Activity } from 'lucide-react'
 import { useState } from 'react'
 
