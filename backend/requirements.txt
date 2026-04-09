@@ -1,35 +1,24 @@
 # Web framework
-fastapi==0.111.1
-uvicorn[standard]==0.30.1
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
 
 # Database – async PostgreSQL (Neon)
-sqlalchemy[asyncio]==2.0.31
-asyncpg==0.29.0
-alembic==1.13.2
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
 
-# Pydantic v2 – pinned to versions with pre-built wheels
-pydantic==2.8.2
-pydantic-core==2.20.1
-pydantic-settings==2.3.4
+# Pydantic v2 – 2.10+ has Python 3.14 wheels
+pydantic==2.10.4
+pydantic-settings==2.7.0
 email-validator==2.2.0
 
 # Auth
 python-jose[cryptography]==3.3.0
-bcrypt==5.0.0
-python-multipart==0.0.9
+bcrypt==4.2.1
+python-multipart==0.0.20
 
-# AWS S3 (file storage)
-boto3==1.34.144
-
-# HTTP client (WhatsApp API calls)
-httpx==0.27.0
-
-# Background tasks
-celery[redis]==5.4.0
-redis==5.0.7
-
-# Image processing
-pillow==10.4.0
+# HTTP client
+httpx==0.28.1
 
 # Utilities
 python-dotenv==1.0.1
