@@ -13,7 +13,7 @@ async def send_confirmation(mobile: str, patient_name: str, appointment_datetime
     """Send appointment confirmation message. Returns True on success."""
     message = (
         f"Hello {patient_name},\n"
-        f"Your appointment at Codeint Dental Clinic is confirmed.\n"
+        f"Your appointment at DentEase Dental Clinic is confirmed.\n"
         f"Date & Time: {appointment_datetime}\n"
         f"Doctor: Dr. {doctor_name}\n"
         f"Please arrive 10 minutes early. Reply CANCEL to cancel."
@@ -25,7 +25,7 @@ async def send_reminder(mobile: str, patient_name: str, appointment_datetime: st
     """Send 2-hour reminder. Returns True on success."""
     message = (
         f"Reminder: Hello {patient_name},\n"
-        f"You have an appointment at Codeint Dental Clinic in 2 hours.\n"
+        f"You have an appointment at DentEase Dental Clinic in 2 hours.\n"
         f"Time: {appointment_datetime}\n"
         f"See you soon!"
     )
