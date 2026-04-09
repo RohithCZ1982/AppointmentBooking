@@ -7,8 +7,9 @@ sqlalchemy[asyncio]==2.0.31
 asyncpg==0.29.0
 alembic==1.13.2
 
-# Pydantic v2
+# Pydantic v2 – pinned to versions with pre-built wheels
 pydantic==2.8.2
+pydantic-core==2.20.1
 pydantic-settings==2.3.4
 email-validator==2.2.0
 
