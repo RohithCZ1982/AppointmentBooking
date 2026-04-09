@@ -45,6 +45,8 @@ export const appointmentsApi = {
   cancel: (id: string) => client.delete(`/appointments/${id}`),
   sendWhatsAppConfirm: (id: string) =>
     client.post(`/appointments/${id}/whatsapp-confirm`),
+  sendWhatsAppReminder: (id: string) =>
+    client.post(`/appointments/${id}/whatsapp-reminder`),
 }
 
 // ── Treatment Records ───────────────────────────────────────────

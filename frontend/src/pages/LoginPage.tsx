@@ -4,6 +4,7 @@ import { authApi } from '@/api'
 import { useAuthStore } from '@/store/authStore'
 import { Phone, Lock } from 'lucide-react'
 import logo from '@/images/Dental appointment made easy.png'
+import ServerWaking from '@/components/ServerWaking'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -13,6 +14,7 @@ export default function LoginPage() {
   const [pin, setPin] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [serverWaking, setServerWaking] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -31,7 +33,7 @@ export default function LoginPage() {
       if (status === 401 || status === 400) {
         setError('Invalid mobile number or PIN. Please try again.')
       } else if (!err?.response) {
-        setError('Cannot reach server. It may be starting up — please wait 30 seconds and try again.')
+        setServerWaking(true)
       } else {
         setError(`Error ${status ?? ''}: ${detail ?? err?.message ?? 'Unknown error'}`)
       }
@@ -39,6 +41,8 @@ export default function LoginPage() {
       setLoading(false)
     }
   }
+
+  if (serverWaking) return <ServerWaking />
 
   return (
     <div className="min-h-screen flex bg-gray-50">

@@ -183,6 +183,29 @@ async def cancel_appointment(
     return {"success": True}
 
 
+@router.post("/{appt_id}/whatsapp-reminder")
+async def send_whatsapp_reminder(
+    appt_id: uuid.UUID,
+    _: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Appointment).options(*_options()).where(Appointment.id == appt_id)
+    )
+    appt = result.scalar_one_or_none()
+    if not appt:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found")
+
+    appt_dt = f"{appt.appointment_date} {str(appt.appointment_time)[:5]}"
+    sent = await whatsapp_service.send_reminder(
+        appt.patient.mobile, appt.patient.name, appt_dt
+    )
+    if sent:
+        appt.whatsapp_reminder_sent = True
+        appt.whatsapp_reminder_sent_at = datetime.now(timezone.utc)
+    return {"success": sent, "sent": sent}
+
+
 @router.post("/{appt_id}/whatsapp-confirm")
 async def send_whatsapp_confirmation(
     appt_id: uuid.UUID,
