@@ -10,12 +10,91 @@ const ROLE_COLORS: Record<string, string> = {
 }
 
 const EMPTY_FORM = { name: '', mobile: '', pin: '', role: 'receptionist' as string }
+const PIN_SENTINEL = '••••'
+
+const inputCls = 'w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500'
+
+interface FormState { name: string; mobile: string; pin: string; role: string }
+
+interface UserFormProps {
+  form: FormState
+  setForm: (f: FormState) => void
+  pinChanged: boolean
+  setPinChanged: (v: boolean) => void
+  formError: string
+  isEdit?: boolean
+  isPending: boolean
+  onSubmit: (e: React.FormEvent) => void
+  onCancel: () => void
+}
+
+function UserForm({ form, setForm, pinChanged, setPinChanged, formError, isEdit, isPending, onSubmit, onCancel }: UserFormProps) {
+  return (
+    <form onSubmit={onSubmit} className="px-6 py-4 space-y-4">
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-1">Full Name *</label>
+        <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
+          placeholder="e.g. Dr. Priya Sharma" className={inputCls} required />
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-1">Mobile Number *</label>
+        <input type="tel" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })}
+          placeholder="10-digit mobile" className={inputCls} required />
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-1">Role *</label>
+        <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className={inputCls}>
+          <option value="receptionist">Receptionist</option>
+          <option value="doctor">Doctor</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-gray-600 mb-1">
+          4-Digit PIN {isEdit ? <span className="text-gray-400 font-normal">(click to change)</span> : '*'}
+        </label>
+        <input
+          type="password"
+          value={form.pin}
+          onFocus={() => { if (isEdit && !pinChanged) { setForm({ ...form, pin: '' }); setPinChanged(true) } }}
+          onChange={(e) => {
+            const val = e.target.value.replace(/\D/g, '').slice(0, 4)
+            setForm({ ...form, pin: val })
+            if (isEdit) setPinChanged(true)
+          }}
+          placeholder="••••" maxLength={4} inputMode="numeric"
+          className={`${inputCls} tracking-widest`} required={!isEdit} />
+      </div>
+
+      {formError && (
+        <div className="bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+          <p className="text-xs text-red-600">{formError}</p>
+        </div>
+      )}
+
+      <div className="flex gap-3 pt-1">
+        <button type="button" onClick={onCancel}
+          className="flex-1 border border-gray-200 text-gray-600 py-2 rounded-xl text-sm hover:bg-gray-50 transition-colors">
+          Cancel
+        </button>
+        <button type="submit" disabled={isPending}
+          className="flex-1 bg-primary-600 text-white py-2 rounded-xl text-sm font-semibold hover:bg-primary-700 disabled:opacity-50 shadow-sm transition-colors">
+          {isPending ? (isEdit ? 'Saving…' : 'Creating…') : (isEdit ? 'Save Changes' : 'Create User')}
+        </button>
+      </div>
+    </form>
+  )
+}
 
 export default function UsersPage() {
   const qc = useQueryClient()
   const [showModal, setShowModal]   = useState(false)
   const [editUser,  setEditUser]    = useState<any>(null)
   const [form,      setForm]        = useState(EMPTY_FORM)
+  const [pinChanged, setPinChanged] = useState(false)
   const [formError, setFormError]   = useState('')
 
   const { data, isLoading } = useQuery({
@@ -40,6 +119,7 @@ export default function UsersPage() {
       qc.invalidateQueries({ queryKey: ['users'] })
       setEditUser(null)
       setFormError('')
+      setPinChanged(false)
     },
     onError: (err: any) => setFormError(err?.response?.data?.detail || 'Failed to update user'),
   })
@@ -58,7 +138,8 @@ export default function UsersPage() {
 
   function openEdit(u: any) {
     setEditUser(u)
-    setForm({ name: u.name, mobile: u.mobile, pin: '', role: u.role })
+    setForm({ name: u.name, mobile: u.mobile, pin: PIN_SENTINEL, role: u.role })
+    setPinChanged(false)
     setFormError('')
   }
 
@@ -74,7 +155,7 @@ export default function UsersPage() {
   function handleUpdate(e: React.FormEvent) {
     e.preventDefault()
     const payload: any = { name: form.name, mobile: form.mobile, role: form.role }
-    if (form.pin) {
+    if (pinChanged && form.pin) {
       if (form.pin.length !== 4 || !/^\d{4}$/.test(form.pin)) {
         setFormError('PIN must be exactly 4 digits')
         return
@@ -85,66 +166,6 @@ export default function UsersPage() {
   }
 
   const users = data?.data ?? []
-
-  const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
-
-  function UserForm({ onSubmit, isEdit }: { onSubmit: (e: React.FormEvent) => void; isEdit?: boolean }) {
-    return (
-      <form onSubmit={onSubmit} className="px-6 py-4 space-y-4">
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Full Name *</label>
-          <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="e.g. Dr. Priya Sharma" className={inputCls} required />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Mobile Number *</label>
-          <input type="tel" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })}
-            placeholder="10-digit mobile" className={inputCls} required />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Role *</label>
-          <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className={inputCls}>
-            <option value="receptionist">Receptionist</option>
-            <option value="doctor">Doctor</option>
-            <option value="admin">Admin</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">
-            4-Digit PIN {isEdit ? <span className="text-gray-400 font-normal">(leave blank to keep current)</span> : '*'}
-          </label>
-          <input type="password" value={form.pin}
-            onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, '').slice(0, 4) })}
-            placeholder="••••" maxLength={4} inputMode="numeric"
-            className={`${inputCls} tracking-widest`} required={!isEdit} />
-        </div>
-
-        {formError && (
-          <div className="bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-            <p className="text-xs text-red-600">{formError}</p>
-          </div>
-        )}
-
-        <div className="flex gap-3 pt-1">
-          <button type="button"
-            onClick={() => isEdit ? setEditUser(null) : setShowModal(false)}
-            className="flex-1 border border-gray-200 text-gray-600 py-2 rounded-xl text-sm hover:bg-gray-50 transition-colors">
-            Cancel
-          </button>
-          <button type="submit"
-            disabled={createMutation.isPending || updateMutation.isPending}
-            className="flex-1 bg-primary-600 text-white py-2 rounded-xl text-sm font-semibold hover:bg-primary-700 disabled:opacity-50 shadow-sm transition-colors">
-            {createMutation.isPending || updateMutation.isPending
-              ? (isEdit ? 'Saving…' : 'Creating…')
-              : (isEdit ? 'Save Changes' : 'Create User')}
-          </button>
-        </div>
-      </form>
-    )
-  }
 
   return (
     <div className="space-y-4">
@@ -218,7 +239,12 @@ export default function UsersPage() {
               <h3 className="font-semibold text-gray-800">Add User</h3>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
             </div>
-            <UserForm onSubmit={handleCreate} />
+            <UserForm
+              form={form} setForm={setForm}
+              pinChanged={pinChanged} setPinChanged={setPinChanged}
+              formError={formError} isPending={createMutation.isPending}
+              onSubmit={handleCreate} onCancel={() => setShowModal(false)}
+            />
           </div>
         </div>
       )}
@@ -234,7 +260,12 @@ export default function UsersPage() {
               </div>
               <button onClick={() => setEditUser(null)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
             </div>
-            <UserForm onSubmit={handleUpdate} isEdit />
+            <UserForm
+              form={form} setForm={setForm}
+              pinChanged={pinChanged} setPinChanged={setPinChanged}
+              formError={formError} isEdit isPending={updateMutation.isPending}
+              onSubmit={handleUpdate} onCancel={() => setEditUser(null)}
+            />
           </div>
         </div>
       )}

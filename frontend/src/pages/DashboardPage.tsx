@@ -51,14 +51,16 @@ export default function DashboardPage() {
   const [sendResults, setSendResults] = useState<Record<string, boolean | null>>({})
 
   const { data: statsData, isLoading: statsLoading } = useQuery<DashboardStats>({
-    queryKey: ['dashboard-stats'],
+    queryKey: ['dashboard-stats', todayStr],
     queryFn: () => dashboardApi.stats().then((r) => r.data),
+    staleTime: 0,
   })
 
   // Today's appointments (for schedule + reminders)
   const { data: todayAppts } = useQuery({
-    queryKey: ['today-appointments'],
+    queryKey: ['today-appointments', todayStr],
     queryFn: () => dashboardApi.todayAppointments().then((r) => r.data.data),
+    staleTime: 0,
   })
 
   // Completed today
@@ -69,11 +71,13 @@ export default function DashboardPage() {
   })
 
   // Upcoming 7 days
-  const { data: upcomingData } = useQuery({
+  const { data: upcomingRes } = useQuery({
     queryKey: ['appts-upcoming', todayStr, weekEndStr],
     queryFn: () => appointmentsApi.list({ date_from: todayStr, date_to: weekEndStr, per_page: 100 }).then((r) => r.data.data),
     enabled: activeCard === 'upcoming',
+    staleTime: 0,
   })
+  const upcomingData = upcomingRes
 
   // Reminder mutation
   const reminderMutation = useMutation({
@@ -176,7 +180,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-gray-800 truncate">{a.patient?.name ?? '—'}</p>
-                      <p className="text-xs text-gray-400 truncate">Dr. {a.doctor?.name ?? '—'}{a.treatment_type?.name ? ` · ${a.treatment_type.name}` : ''}</p>
+                      <p className="text-xs text-gray-400 truncate">{a.doctor?.name ?? '—'}{a.treatment_type?.name ? ` · ${a.treatment_type.name}` : ''}</p>
                     </div>
                     <div className="shrink-0 flex items-center gap-2">
                       {result === true  && <span className="text-xs text-[#25D366] font-medium flex items-center gap-1"><CheckCircle size={12} /> Sent</span>}
@@ -213,7 +217,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-gray-800 truncate">{a.patient?.name ?? '—'}</p>
-                    <p className="text-xs text-gray-400 truncate">Dr. {a.doctor?.name ?? '—'}{a.treatment_type?.name ? ` · ${a.treatment_type.name}` : ''}</p>
+                    <p className="text-xs text-gray-400 truncate">{a.doctor?.name ?? '—'}{a.treatment_type?.name ? ` · ${a.treatment_type.name}` : ''}</p>
                   </div>
                   <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-green-100 text-green-700">Completed</span>
                 </div>
@@ -248,7 +252,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-gray-800 truncate">{a.patient?.name ?? '—'}</p>
-                    <p className="text-xs text-gray-400 truncate">Dr. {a.doctor?.name ?? '—'}{a.treatment_type?.name ? ` · ${a.treatment_type.name}` : ''}</p>
+                    <p className="text-xs text-gray-400 truncate">{a.doctor?.name ?? '—'}{a.treatment_type?.name ? ` · ${a.treatment_type.name}` : ''}</p>
                   </div>
                   <span className={`shrink-0 text-xs px-2.5 py-0.5 rounded-full font-medium capitalize ${STATUS_COLORS[a.status] ?? 'bg-gray-100 text-gray-600'}`}>
                     {a.status.replace('_', ' ')}

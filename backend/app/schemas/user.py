@@ -34,6 +34,7 @@ class UserUpdate(BaseModel):
     mobile: str | None = None
     role: UserRole | None = None
     is_active: bool | None = None
+    pin: str | None = None
 
 
 class UserOut(BaseModel):

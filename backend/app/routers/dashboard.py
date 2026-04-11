@@ -52,18 +52,15 @@ async def get_stats(
     total_patients = (
         await db.execute(select(func.count()).select_from(select(Patient).where(Patient.is_active == True).subquery()))
     ).scalar_one()
+    upcoming_q = select(Appointment).where(
+        Appointment.is_deleted == False,
+        Appointment.appointment_date >= today,
+        Appointment.appointment_date <= today + timedelta(days=7),
+    )
+    if current_user.role == "doctor":
+        upcoming_q = upcoming_q.where(Appointment.doctor_id == current_user.id)
     upcoming = (
-        await db.execute(
-            select(func.count()).select_from(
-                select(Appointment)
-                .where(
-                    Appointment.is_deleted == False,
-                    Appointment.appointment_date >= today,
-                    Appointment.appointment_date <= today + timedelta(days=7),
-                )
-                .subquery()
-            )
-        )
+        await db.execute(select(func.count()).select_from(upcoming_q.subquery()))
     ).scalar_one()
 
     return DashboardStats(

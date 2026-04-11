@@ -14,6 +14,11 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   return token ? <>{children}</> : <Navigate to="/login" replace />
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore((s) => s.user)
+  return user?.role === 'admin' ? <>{children}</> : <Navigate to="/dashboard" replace />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -32,8 +37,8 @@ export default function App() {
           <Route path="appointments" element={<AppointmentsPage />} />
           <Route path="patients" element={<PatientsPage />} />
           <Route path="patients/:patientId" element={<PatientProfilePage />} />
-          <Route path="users" element={<UsersPage />} />
-          <Route path="treatment-types" element={<TreatmentTypesPage />} />
+          <Route path="users" element={<AdminRoute><UsersPage /></AdminRoute>} />
+          <Route path="treatment-types" element={<AdminRoute><TreatmentTypesPage /></AdminRoute>} />
         </Route>
       </Routes>
     </BrowserRouter>

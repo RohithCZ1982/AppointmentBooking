@@ -62,9 +62,10 @@ async def list_appointments(
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
     doctor_id: uuid.UUID | None = None,
+    patient_id: uuid.UUID | None = None,
     appt_status: str | None = Query(None, alias="status"),
     page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
+    per_page: int = Query(20, ge=1, le=200),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -81,6 +82,8 @@ async def list_appointments(
         query = query.where(Appointment.appointment_date <= date_to)
     if doctor_id:
         query = query.where(Appointment.doctor_id == doctor_id)
+    if patient_id:
+        query = query.where(Appointment.patient_id == patient_id)
     if appt_status:
         query = query.where(Appointment.status == appt_status)
     if current_user.role == "doctor":

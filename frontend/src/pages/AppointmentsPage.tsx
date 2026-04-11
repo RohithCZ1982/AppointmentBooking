@@ -5,6 +5,7 @@ import { appointmentsApi, patientsApi, usersApi, treatmentTypesApi } from '@/api
 import type { Appointment } from '@/types'
 import { Plus, X, CheckCircle, AlertCircle, Loader2, ExternalLink, Calendar } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useAuthStore } from '@/store/authStore'
 
 const STATUS_COLORS: Record<string, string> = {
   scheduled:   'bg-blue-100 text-blue-700',
@@ -43,6 +44,8 @@ type PatientStatus = 'idle' | 'searching' | 'found' | 'new'
 
 export default function AppointmentsPage() {
   const qc = useQueryClient()
+  const currentUser = useAuthStore((s) => s.user)
+  const isDoctor = currentUser?.role === 'doctor'
   const [searchParams] = useSearchParams()
   const [dateFilter, setDateFilter] = useState(searchParams.get('date') ?? format(new Date(), 'yyyy-MM-dd'))
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') ?? '')
@@ -206,7 +209,11 @@ export default function AppointmentsPage() {
             <ExternalLink size={13} /> Treatment Types
           </Link>
           <button
-            onClick={() => { setShowModal(true); setFormError('') }}
+            onClick={() => {
+            setForm((f) => ({ ...f, doctor_id: isDoctor ? (currentUser?.id ?? '') : '' }))
+            setShowModal(true)
+            setFormError('')
+          }}
             className="flex items-center gap-1.5 bg-primary-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors shadow-sm"
           >
             <Plus size={14} /> New Appointment
@@ -268,7 +275,7 @@ export default function AppointmentsPage() {
                   <tr key={a.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-4 py-3 font-semibold text-gray-700 whitespace-nowrap">{appointmentDate} · {String(a.appointment_time).slice(0,5)}</td>
                     <td className="px-4 py-3 text-gray-800 font-medium">{a.patient?.name ?? a.patient_id}</td>
-                    <td className="px-4 py-3 text-gray-500">Dr. {a.doctor?.name ?? '—'}</td>
+                    <td className="px-4 py-3 text-gray-500">{a.doctor?.name ?? '—'}</td>
                     <td className="px-4 py-3 text-gray-500">{a.duration_minutes} min</td>
                     <td className="px-4 py-3">
                       <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium capitalize ${STATUS_COLORS[a.status]}`}>
@@ -413,17 +420,23 @@ export default function AppointmentsPage() {
                   {/* Doctor */}
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Doctor *</label>
-                    <select
-                      value={form.doctor_id}
-                      onChange={(e) => setForm((f) => ({ ...f, doctor_id: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      required
-                    >
-                      <option value="">Select doctor…</option>
-                      {doctors.map((d: any) => (
-                        <option key={d.id} value={d.id}>Dr. {d.name}</option>
-                      ))}
-                    </select>
+                    {isDoctor ? (
+                      <div className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-100 text-gray-700 font-medium">
+                        {currentUser?.name}
+                      </div>
+                    ) : (
+                      <select
+                        value={form.doctor_id}
+                        onChange={(e) => setForm((f) => ({ ...f, doctor_id: e.target.value }))}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        required
+                      >
+                        <option value="">Select doctor…</option>
+                        {doctors.map((d: any) => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                      </select>
+                    )}
                   </div>
 
                   {/* Treatment Type */}

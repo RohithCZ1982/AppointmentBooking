@@ -62,7 +62,10 @@ async def update_user(
     user = await db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    for field, value in body.model_dump(exclude_none=True).items():
+    updates = body.model_dump(exclude_none=True)
+    if "pin" in updates:
+        user.pin_hash = hash_pin(updates.pop("pin"))
+    for field, value in updates.items():
         setattr(user, field, value)
     return SuccessResponse(data=user)
 
