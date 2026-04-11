@@ -58,9 +58,8 @@ async def get_stats(
                 select(Appointment)
                 .where(
                     Appointment.is_deleted == False,
-                    Appointment.appointment_date > today,
+                    Appointment.appointment_date >= today,
                     Appointment.appointment_date <= today + timedelta(days=7),
-                    Appointment.status.in_(["scheduled", "confirmed"]),
                 )
                 .subquery()
             )

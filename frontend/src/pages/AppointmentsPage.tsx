@@ -50,6 +50,8 @@ export default function AppointmentsPage() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [patientStatus, setPatientStatus] = useState<PatientStatus>('idle')
   const [formError, setFormError] = useState('')
+  const [suggestions, setSuggestions] = useState<any[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const mobileSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Appointment list ──
@@ -105,34 +107,55 @@ export default function AppointmentsPage() {
     setForm(EMPTY_FORM)
     setPatientStatus('idle')
     setFormError('')
+    setSuggestions([])
+    setShowSuggestions(false)
     if (mobileSearchTimer.current) clearTimeout(mobileSearchTimer.current)
   }
 
   // ── Mobile number lookup ──
   function handleMobileChange(mobile: string) {
-    // digits only, max 15
     const clean = mobile.replace(/\D/g, '').slice(0, 15)
     setForm((f) => ({ ...f, mobile: clean, patient_id: '', patient_name: '', new_name: '', new_address: '' }))
     setPatientStatus('idle')
+    setSuggestions([])
+    setShowSuggestions(false)
 
     if (mobileSearchTimer.current) clearTimeout(mobileSearchTimer.current)
-    if (clean.length < 10) return
+    if (clean.length < 3) return
 
-    setPatientStatus('searching')
     mobileSearchTimer.current = setTimeout(async () => {
       try {
-        const res = await patientsApi.list({ q: clean, per_page: 1 })
-        const found = res.data.data.find((p: any) => p.mobile === clean)
-        if (found) {
-          setForm((f) => ({ ...f, patient_id: found.id, patient_name: found.name }))
-          setPatientStatus('found')
-        } else {
+        const res = await patientsApi.list({ q: clean, per_page: 10 })
+        const matches: any[] = res.data.data ?? []
+
+        if (clean.length >= 10) {
+          // Exact match check at full number
+          const exact = matches.find((p: any) => p.mobile === clean)
+          if (exact) {
+            setForm((f) => ({ ...f, patient_id: exact.id, patient_name: exact.name }))
+            setPatientStatus('found')
+            setSuggestions([])
+            setShowSuggestions(false)
+            return
+          }
           setPatientStatus('new')
+        }
+
+        if (matches.length > 0) {
+          setSuggestions(matches)
+          setShowSuggestions(true)
         }
       } catch {
         setPatientStatus('idle')
       }
-    }, 500)
+    }, 300)
+  }
+
+  function selectSuggestion(p: any) {
+    setForm((f) => ({ ...f, mobile: p.mobile, patient_id: p.id, patient_name: p.name, new_name: '', new_address: '' }))
+    setPatientStatus('found')
+    setSuggestions([])
+    setShowSuggestions(false)
   }
 
   function bookAppointment(patientId: string) {
@@ -266,6 +289,10 @@ export default function AppointmentsPage() {
                           <button onClick={() => statusMutation.mutate({ id: a.id, status: 'cancelled' })}
                             className="text-xs text-red-500 hover:text-red-700 font-medium">Cancel</button>
                         )}
+                        {(a.status === 'scheduled' || a.status === 'confirmed') && (
+                          <button onClick={() => statusMutation.mutate({ id: a.id, status: 'no_show' })}
+                            className="text-xs text-gray-400 hover:text-gray-600 font-medium">No Show</button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -304,16 +331,33 @@ export default function AppointmentsPage() {
                       type="tel"
                       value={form.mobile}
                       onChange={(e) => handleMobileChange(e.target.value)}
+                      onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                      onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
                       placeholder="Enter 10-digit mobile number"
                       inputMode="numeric"
                       className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm pr-9 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                     {/* Status icon */}
                     <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                      {patientStatus === 'searching' && <Loader2 size={15} className="text-gray-400 animate-spin" />}
-                      {patientStatus === 'found'     && <CheckCircle size={15} className="text-green-500" />}
-                      {patientStatus === 'new'       && <AlertCircle size={15} className="text-amber-500" />}
+                      {patientStatus === 'found' && <CheckCircle size={15} className="text-green-500" />}
+                      {patientStatus === 'new'   && <AlertCircle size={15} className="text-amber-500" />}
                     </span>
+                    {/* Suggestions dropdown */}
+                    {showSuggestions && suggestions.length > 0 && (
+                      <div className="absolute z-20 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                        {suggestions.map((p: any) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onMouseDown={() => selectSuggestion(p)}
+                            className="w-full text-left px-3 py-2.5 hover:bg-primary-50 transition-colors border-b border-gray-50 last:border-0"
+                          >
+                            <p className="text-sm font-semibold text-gray-800">{p.name}</p>
+                            <p className="text-xs text-gray-400">{p.mobile}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 

@@ -59,6 +59,8 @@ router = APIRouter(prefix="/appointments", tags=["Appointments"])
 @router.get("")
 async def list_appointments(
     appt_date: date | None = Query(None, alias="date"),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
     doctor_id: uuid.UUID | None = None,
     appt_status: str | None = Query(None, alias="status"),
     page: int = Query(1, ge=1),
@@ -73,6 +75,10 @@ async def list_appointments(
     )
     if appt_date:
         query = query.where(Appointment.appointment_date == appt_date)
+    if date_from:
+        query = query.where(Appointment.appointment_date >= date_from)
+    if date_to:
+        query = query.where(Appointment.appointment_date <= date_to)
     if doctor_id:
         query = query.where(Appointment.doctor_id == doctor_id)
     if appt_status:
@@ -84,6 +90,31 @@ async def list_appointments(
     return {"success": True, "data": _serialize_many(items), "pagination": meta.model_dump()}
 
 
+async def _check_doctor_slot_conflict(
+    db: AsyncSession,
+    doctor_id: uuid.UUID,
+    appointment_date,
+    appointment_time,
+    exclude_id: uuid.UUID | None = None,
+):
+    """Raise 409 if the doctor already has a non-cancelled appointment at the same date+time."""
+    query = select(Appointment).where(
+        Appointment.is_deleted == False,
+        Appointment.doctor_id == doctor_id,
+        Appointment.appointment_date == appointment_date,
+        Appointment.appointment_time == appointment_time,
+        Appointment.status.notin_(["cancelled"]),
+    )
+    if exclude_id:
+        query = query.where(Appointment.id != exclude_id)
+    result = await db.execute(query)
+    if result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This doctor already has an appointment at the selected date and time.",
+        )
+
+
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_appointment(
     body: AppointmentCreate,
@@ -91,6 +122,7 @@ async def create_appointment(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    await _check_doctor_slot_conflict(db, body.doctor_id, body.appointment_date, body.appointment_time)
     appt = Appointment(**body.model_dump(), created_by=current_user.id)
     db.add(appt)
     await db.flush()
@@ -138,7 +170,12 @@ async def update_appointment(
     appt = await db.get(Appointment, appt_id)
     if not appt or appt.is_deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found")
-    for field, value in body.model_dump(exclude_none=True).items():
+    updates = body.model_dump(exclude_none=True)
+    new_doctor_id = updates.get("doctor_id", appt.doctor_id)
+    new_date = updates.get("appointment_date", appt.appointment_date)
+    new_time = updates.get("appointment_time", appt.appointment_time)
+    await _check_doctor_slot_conflict(db, new_doctor_id, new_date, new_time, exclude_id=appt_id)
+    for field, value in updates.items():
         setattr(appt, field, value)
     await db.flush()
     result = await db.execute(
